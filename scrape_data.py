@@ -29,18 +29,16 @@ def run_accessibility_checker(file_path):
         print(f"version: {version}")
         # Run the accessibility checker
         # word.ActiveDocument.CheckAccessibility()
-        # checker = doc.AccessibilityChecker
-        # checker.Check()
         # word.Run("CheckAccessibility")
         #word.CommandBars.ExecuteMso("ReviewAccessibilityChecker")
         word.CommandBars.ExecuteMso("AccessibilityChecker")
         time.sleep(5)
 
-        try:
-            print("Starting check")
-            results = []
-            for i in range(1, word.TaskPanes.Count + 1):
-                print(f"pane is {word.TaskPanes.Item(i)}")
+        # try:
+        #     print("Starting check")
+        #     results = []
+        #     for i in range(1, word.TaskPanes.Count + 1):
+        #         print(f"pane is {word.TaskPanes.Item(i)}")
                 # try:
                 #     if hasattr(pane, 'Title') and 'Accessibility' in str(pane.Title):
                 #         print(f"Found accessibility pane: {pane.Title}")
@@ -53,7 +51,7 @@ def run_accessibility_checker(file_path):
                 # except Exception as pane_error:
                 #     print(f"pane error {pane_error}")
 
-            return results if results else "No pane found"
+            # return results if results else "No pane found"
             # checker = doc.Range().AccessibilityChecker
             # issues = []
 
@@ -69,24 +67,24 @@ def run_accessibility_checker(file_path):
 
             # print(f"issues are: {issues}")
             # return issues
-        except Exception as e: 
-            print(f"Could not access results object: {e}")
+        # except Exception as e: 
+        #     print(f"Could not access results object: {e}")
 
-            try: 
-                checker = doc.AccessibilityChecker
-                issues = []
+        #     try: 
+        #         checker = doc.AccessibilityChecker
+        #         issues = []
 
-                for i in range(checker.Issues.Count):
-                    issue = checker.Issues.Item(i + 1)
-                    issue_data = {
-                        'title': str(issue.Title),
-                        'description': str(issue.Description),
-                        'severity': str(issue.Severity),
-                    }
-                    issues.append(issue_data)
-                return issues
-            except Exception as e2:
-                print(f"Could not retrieve results: {e2}")
+        #         for i in range(checker.Issues.Count):
+        #             issue = checker.Issues.Item(i + 1)
+        #             issue_data = {
+        #                 'title': str(issue.Title),
+        #                 'description': str(issue.Description),
+        #                 'severity': str(issue.Severity),
+        #             }
+        #             issues.append(issue_data)
+        #         return issues
+        #     except Exception as e2:
+        #         print(f"Could not retrieve results: {e2}")
 
         print("Accessibility checker has been run. Please review the results in Word.")
     except Exception as e:
