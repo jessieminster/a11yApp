@@ -1,0 +1,27 @@
+Word Accessibility Checker Results
+==================================================
+
+Document: Minster_Resume.docx
+Generated: 2025-07-29T13:08:50.102758
+
+SUMMARY:
+--------------------
+Status: Status unclear
+Note: Found 3 text elements but could not categorize them
+
+ERRORS: None found
+
+WARNINGS: None found
+
+TIPS: None found
+
+ALL EXTRACTED TEXT ELEMENTS:
+------------------------------
+1. [] Accessibility Assistant
+2.   [] Accessibility Assistant
+3.   [] Accessibility Assistant
+
+RAW ACCESSIBILITY PANE CONTENT:
+------------------------------
+Accessibility Assistant
+
