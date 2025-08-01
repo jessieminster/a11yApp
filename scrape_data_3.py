@@ -45,6 +45,23 @@ class WordAccessibilityScraper:
         
         print("Timeout waiting for accessibility checker")
         return False
+
+    def print_accessibility_pane_elements(self):
+    """Recursively print all elements in the accessibility pane."""
+    if not self.accessibility_pane:
+        if not self.find_accessibility_pane():
+            print("Accessibility pane not found.")
+            return
+
+    def print_elements(element, depth=0):
+        try:
+            text = element.window_text()
+            control_type = element.element_info.control_type
+            print(f"{'  '*depth}- [{control_type}] '{text}'")
+            for child in element.children():
+                print_elements(child, depth+1)
+        except Exception as e:
+            print(f"{'  '*depth}Error: {e}")
     
     def find_accessibility_pane(self):
         """Find the accessibility checker task pane"""
@@ -62,6 +79,8 @@ class WordAccessibilityScraper:
                     if pane.exists() and pane.is_visible():
                         self.accessibility_pane = pane
                         print(f"Found accessibility pane with control_type: {control_type}")
+                        print("Elements in Accessibility Pane:")
+                        print_elements(self.accessibility_pane)
                         return True
                 except Exception as e:
                     print(f"Tried {control_type}: {str(e)}")
@@ -80,6 +99,7 @@ class WordAccessibilityScraper:
                             if child.is_visible():
                                 self.accessibility_pane = child
                                 print(f"Selected visible accessibility pane: {title}")
+                                
                                 return True
                     except Exception as e:
                         continue
