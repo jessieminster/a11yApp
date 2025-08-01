@@ -46,22 +46,28 @@ class WordAccessibilityScraper:
         print("Timeout waiting for accessibility checker")
         return False
 
-    def print_accessibility_pane_elements(self):
-    """Recursively print all elements in the accessibility pane."""
-    if not self.accessibility_pane:
-        if not self.find_accessibility_pane():
-            print("Accessibility pane not found.")
-            return
-
-    def print_elements(element, depth=0):
+    def get_color_and_contrast_element(self):
         try:
-            text = element.window_text()
-            control_type = element.element_info.control_type
-            print(f"{'  '*depth}- [{control_type}] '{text}'")
-            for child in element.children():
-                print_elements(child, depth+1)
+            dock_right = self.word_window.child_window(control_type="Pane", found_index=0, title="") \
+                .child_window(control_type="ToolBar", found_index=0, title="") \
+                # .child_window(title="Accessibility Assistant", control_type="Pane") \
+                .child_window(title="Accessibility Assistant", control_type="Window") \
+                .child_window(control_type="Pane", found_index=0, title="") \
+                .child_window(control_type="Pane", found_index=0, title="") \
+                .child_window(title="Accessibility Assistant", control_type="Custom") \
+                .child_window(control_type="Group", found_index=0, title="") \
+                .child_window(control_type="Pane", found_index=0, title="") \
+                .child_window(title="Color and Contrast", control_type="Pane")
+
+            if dock_right.exists() and dock_right.is_visible():
+                print("Found 'Color and Contrast' element!")
+                return dock_right
+            else:
+                print("'Color and Contrast' element not found or not visible.")
+                return None
         except Exception as e:
-            print(f"{'  '*depth}Error: {e}")
+            print(f"Error accessing 'Color and Contrast': {e}")
+            return None
     
     def find_accessibility_pane(self):
         """Find the accessibility checker task pane"""
@@ -542,6 +548,7 @@ def run_accessibility_checker(file_path):
         
         # Wait for the accessibility checker to complete
         if scraper.word_window:
+            scraper.get_color_and_contrast_element()  # Ensure we can access the color and contrast element
             if scraper.wait_for_accessibility_checker():
                 print("Accessibility checker completed. Scraping results...")
                 
