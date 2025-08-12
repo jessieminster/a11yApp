@@ -2,26 +2,17 @@ Word Accessibility Checker Results
 ==================================================
 
 Document: ConflictDoc.docx
-Generated: 2025-07-30T08:34:54.916599
+Generated: 2025-08-12T10:18:38.698516
 
-SUMMARY:
---------------------
-Status: Status unclear
-Note: Found 3 text elements but could not categorize them
+Contrast errors: Hard-to-read text contrast - 6
 
-ERRORS: None found
+Heading errors: No headings in document - 0
 
-WARNINGS: None found
+Image errors: Missing alt text - 1
 
-TIPS: None found
+Table errors: Missing table header - 1
 
-ALL EXTRACTED TEXT ELEMENTS:
-------------------------------
-1. [] Accessibility Assistant
-2.   [] Accessibility Assistant
-3.   [] Accessibility Assistant
+Cell errors: Use of merged or split cells - 0
 
-RAW ACCESSIBILITY PANE CONTENT:
-------------------------------
-Accessibility Assistant
+Access errors: Restricted access - 0
 

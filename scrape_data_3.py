@@ -3,6 +3,7 @@ import time
 import win32com.client
 import pywinauto
 from pywinauto import Application
+from pywinauto.uia_defines import NoPatternInterfaceError
 from pywinauto.findwindows import find_windows
 import re
 from datetime import datetime
@@ -22,8 +23,13 @@ class WordAccessibilityScraper:
                 raise Exception("No Word windows found. Please open Word first.")
             
             # Connect to Word application
-            self.app = Application().connect(handle=word_windows[0])
-            self.word_window = self.app.window(handle=word_windows[0])
+            # self.app = Application().connect(handle=word_windows[0])
+            
+            self.app = Application(backend="uia").connect(title_re=".*Word.*")
+            # self.word_window = self.app.window(handle=word_windows[0])
+            self.word_window = self.app.window(title_re=".*Word.*")
+            print(f"All children are {self.word_window.children()}")
+
             print("Successfully connected to Word for GUI automation")
             return True
             
@@ -44,27 +50,69 @@ class WordAccessibilityScraper:
             time.sleep(1)
         
         print("Timeout waiting for accessibility checker")
-        return False
+        # return False
+        return True
 
     def get_color_and_contrast_element(self):
+        # MsoDockRight has Color and contrast DESCENDANT!!!! YES!! PRAISEEE THE LORDDDDDD
         try:
-            dock_right = self.word_window.child_window(control_type="Pane", found_index=0, title="") \
-                .child_window(control_type="ToolBar", found_index=0, title="") \
-                # .child_window(title="Accessibility Assistant", control_type="Pane") \
-                .child_window(title="Accessibility Assistant", control_type="Window") \
-                .child_window(control_type="Pane", found_index=0, title="") \
-                .child_window(control_type="Pane", found_index=0, title="") \
-                .child_window(title="Accessibility Assistant", control_type="Custom") \
-                .child_window(control_type="Group", found_index=0, title="") \
-                .child_window(control_type="Pane", found_index=0, title="") \
-                .child_window(title="Color and Contrast", control_type="Pane")
+            dock_right = self.accessibility_pane
+            # .child_window(title="Accessibility Assistant", found_index=0)
+            # test = dock_right.child_window(title="Media and Illustrations", class_name="GroupBox")
+            # print(f"media and illustration found {test}: {test.descendants()}")
+            # .child_window(title="Color and Contrast") \
+                # .child_window(title_re=".*[Hh]ard-to-read.*", found_index=0)
+                # .child_window(title_re=".*Hard-to-read.*", found_index=0) \
+                # .child_window(control_type="ToolBar", found_index=0, title="") \
+                # .child_window(title="Accessibility Assistant", control_type="Window") \
+                # .child_window(control_type="Pane", found_index=0, title="") \
+                # .child_window(control_type="Pane", found_index=0, title="") \
+                # .child_window(title="Accessibility Assistant", control_type="Custom") \
+                # .child_window(control_type="Group", found_index=0, title="") \
+                # .child_window(control_type="Pane", found_index=0, title="") \
+                # .child_window(title="Color and Contrast", control_type="Pane")
+
 
             if dock_right.exists() and dock_right.is_visible():
-                print("Found 'Color and Contrast' element!")
-                return dock_right
+                print(f"Found 'Color and Contrast' element! {dock_right} children {dock_right.children()} content: {dock_right.element_info}")
+               
+                # for elem in dock_right.descendants():
+                #     print(f"decendant is {elem}: {elem.element_info}, CT: {elem.element_info.control_type}, parent: {elem.parent()}")
+
+                contrast = dock_right.child_window(title_re=".*Hard-to-read text contrast - [0-9]+.*")
+                heading = dock_right.child_window(title_re=".*No headings in document - [0-9]+.*")
+                image = dock_right.child_window(title_re=".*Missing alt text - [0-9]+.*")
+                table = dock_right.child_window(title_re=".*Missing table header - [0-9]+.*")
+                cell = dock_right.child_window(title_re=".*Use of merged or split cells - [0-9]+.*")
+                access = dock_right.child_window(title_re=".*Restricted access - [0-9]+.*")
+
+                results = {
+                    'timestamp': datetime.now().isoformat(),
+                    'contrast': None,
+                    'heading': None,
+                    'image': None,
+                    'table': None,
+                    'cell':  None,
+                    'access': None,
+                }
+                if contrast.exists():
+                    results['contrast'] = contrast.window_text()
+                if heading.exists():
+                    results['heading'] = heading.window_text()
+                if image.exists():
+                    results['image']= image.window_text()
+                if table.exists():
+                    results['table']= table.window_text()
+                if cell.exists():
+                    results['cell']=  cell.window_text()
+                if access.exists():
+                    results['access']= access.window_text()
+
+                return results
             else:
                 print("'Color and Contrast' element not found or not visible.")
                 return None
+            
         except Exception as e:
             print(f"Error accessing 'Color and Contrast': {e}")
             return None
@@ -74,19 +122,18 @@ class WordAccessibilityScraper:
         try:
             # Based on your output, look for "Accessibility Assistant" with different control types
             accessibility_control_types = [
-                "MsoWorkPane",  # This appears in your output
+                "MsoWorkPane",
+                "Pane",
             ]
-            print(f"children are {self.word_window.children()}")
+            # print(f"children are {self.word_window.children()}")
             # First try to find by exact title "Accessibility Assistant"
             for control_type in accessibility_control_types:
                 print(control_type)
                 try:
-                    pane = self.word_window.child_window(title="Accessibility Assistant", control_type=control_type)
+                    pane = self.word_window.child_window(title="MsoDockRight", control_type=control_type)
                     if pane.exists() and pane.is_visible():
                         self.accessibility_pane = pane
                         print(f"Found accessibility pane with control_type: {control_type}")
-                        print("Elements in Accessibility Pane:")
-                        print_elements(self.accessibility_pane)
                         return True
                 except Exception as e:
                     print(f"Tried {control_type}: {str(e)}")
@@ -146,30 +193,23 @@ class WordAccessibilityScraper:
         try:
             results = {
                 'timestamp': datetime.now().isoformat(),
-                'errors': [],
-                'warnings': [],
-                'tips': [],
-                'summary': {},
-                'raw_text': '',
-                'all_found_text': []
+                'contrast': [],
+                'heading': [],
+                'image': [],
+                'table': [],
+                'cell': [],
+                'access': [],
             }
             
             # Get all text from the accessibility pane
             try:
                 pane_text = self.accessibility_pane.window_text()
-                results['raw_text'] = pane_text
                 print(f"Main pane text: '{pane_text}' (length: {len(pane_text)})")
             except Exception as e:
                 print(f"Error getting main pane text: {str(e)}")
             
             # Function to extract detailed accessibility data
             def extract_accessibility_categories(element, depth=0):
-                category_data = {
-                    'errors': [],
-                    'warnings': [],
-                    'tips': [],
-                    'all_items': []
-                }
                 
                 def explore_element(elem, current_depth=0):
                     try:
@@ -179,33 +219,25 @@ class WordAccessibilityScraper:
                         print(f"{'  ' * current_depth}Exploring: [{elem_type}] '{elem_text}'")
                         
                         # Look for category headers or expandable sections
-                        if elem_text:
-                            lower_text = elem_text.lower()
+                        # if elem_text:
+                        #     lower_text = elem_text.lower()
                             
-                            # Check if this is a category header
-                            if any(word in lower_text for word in ['error', 'errors']):
-                                print(f"{'  ' * current_depth}→ Found ERROR category")
-                                # Get items under this category
-                                category_items = get_category_items(elem, 'error')
-                                category_data['errors'].extend(category_items)
+                        #     # Check if this is a category header
+                        #     if lower_text = 'hard-to-read text contrast':
+                        #         print(f"{'  ' * current_depth}→ Found ERROR category")
+                        #         # Get items under this category
+                        #         results['contrast'] = 
                                 
-                            elif any(word in lower_text for word in ['warning', 'warnings']):
-                                print(f"{'  ' * current_depth}→ Found WARNING category")
-                                category_items = get_category_items(elem, 'warning')
-                                category_data['warnings'].extend(category_items)
+                        #     elif any(word in lower_text for word in ['warning', 'warnings']):
+                        #         print(f"{'  ' * current_depth}→ Found WARNING category")
+                        #         category_items = get_category_items(elem, 'warning')
+                        #         category_data['warnings'].extend(category_items)
                                 
-                            elif any(word in lower_text for word in ['tip', 'tips', 'suggestion']):
-                                print(f"{'  ' * current_depth}→ Found TIP category")
-                                category_items = get_category_items(elem, 'tip')
-                                category_data['tips'].extend(category_items)
+                        #     elif any(word in lower_text for word in ['tip', 'tips', 'suggestion']):
+                        #         print(f"{'  ' * current_depth}→ Found TIP category")
+                        #         category_items = get_category_items(elem, 'tip')
+                        #         category_data['tips'].extend(category_items)
                             
-                            # Collect all non-empty text
-                            if len(elem_text) > 2:  # Ignore very short text
-                                category_data['all_items'].append({
-                                    'text': elem_text,
-                                    'type': elem_type,
-                                    'depth': current_depth
-                                })
                         
                         # Recursively explore children
                         try:
@@ -447,60 +479,13 @@ class WordAccessibilityScraper:
                 f.write("=" * 50 + "\n\n")
                 f.write(f"Document: {document_name}\n")
                 f.write(f"Generated: {results['timestamp']}\n\n")
-                
-                # Summary
-                if results['summary']:
-                    f.write("SUMMARY:\n")
-                    f.write("-" * 20 + "\n")
-                    for key, value in results['summary'].items():
-                        f.write(f"{key.replace('_', ' ').title()}: {value}\n")
-                    f.write("\n")
-                
-                # Errors
-                if results['errors']:
-                    f.write(f"ERRORS ({len(results['errors'])}):\n")
-                    f.write("-" * 20 + "\n")
-                    for i, error in enumerate(results['errors'], 1):
-                        f.write(f"{i}. {error}\n")
-                    f.write("\n")
-                else:
-                    f.write("ERRORS: None found\n\n")
-                
-                # Warnings
-                if results['warnings']:
-                    f.write(f"WARNINGS ({len(results['warnings'])}):\n")
-                    f.write("-" * 20 + "\n")
-                    for i, warning in enumerate(results['warnings'], 1):
-                        f.write(f"{i}. {warning}\n")
-                    f.write("\n")
-                else:
-                    f.write("WARNINGS: None found\n\n")
-                
-                # Tips
-                if results['tips']:
-                    f.write(f"TIPS ({len(results['tips'])}):\n")
-                    f.write("-" * 20 + "\n")
-                    for i, tip in enumerate(results['tips'], 1):
-                        f.write(f"{i}. {tip}\n")
-                    f.write("\n")
-                else:
-                    f.write("TIPS: None found\n\n")
-                
-                # All found text for debugging
-                if results.get('all_found_text'):
-                    f.write("ALL EXTRACTED TEXT ELEMENTS:\n")
-                    f.write("-" * 30 + "\n")
-                    for i, text in enumerate(results['all_found_text'], 1):
-                        f.write(f"{i}. {text}\n")
-                    f.write("\n")
-                
-                # Raw text for debugging/reference
-                if results['raw_text']:
-                    f.write("RAW ACCESSIBILITY PANE CONTENT:\n")
-                    f.write("-" * 30 + "\n")
-                    f.write(results['raw_text'])
-                    f.write("\n\n")
-            
+                f.write(f"Contrast errors: {results['contrast']}\n\n")
+                f.write(f"Heading errors: {results['heading']}\n\n")
+                f.write(f"Image errors: {results['image']}\n\n")
+                f.write(f"Table errors: {results['table']}\n\n")
+                f.write(f"Cell errors: {results['cell']}\n\n")
+                f.write(f"Access errors: {results['access']}\n\n")
+        
             print(f"Results saved to {filename}")
             return True
             
@@ -545,16 +530,15 @@ def run_accessibility_checker(file_path):
             except:
                 print("Could not execute accessibility checker command")
                 return
-        
         # Wait for the accessibility checker to complete
         if scraper.word_window:
-            scraper.get_color_and_contrast_element()  # Ensure we can access the color and contrast element
             if scraper.wait_for_accessibility_checker():
                 print("Accessibility checker completed. Scraping results...")
-                
+
                 # Scrape the results
-                results = scraper.scrape_accessibility_results()
-                
+                # results = scraper.scrape_accessibility_results()
+                results = scraper.get_color_and_contrast_element()  # Ensure we can access the color and contrast element
+
                 if results:
                     # Generate output filename
                     base_name = os.path.splitext(os.path.basename(file_path))[0]
